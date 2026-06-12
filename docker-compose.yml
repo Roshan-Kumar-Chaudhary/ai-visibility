@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15
+    container_name: ai_visibility_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123
+      POSTGRES_DB: ai_visibility_dev
+    ports:
+      - "5547:5432"
+    volumes:
+      - ai_visibility-db-data:/var/lib/postgresql/data
+    networks:
+      - ai_visibility_net
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: ai_visibility_redis
+    command: [ "redis-server", "--appendonly", "yes" ]
+    # ✅ Do NOT expose Redis publicly. API/worker talk via docker network.
+    # If you want redis-cli from host, uncomment next lines:
+    ports:
+      - "6392:6379"
+    volumes:
+      - ai_visibility-redis-data:/data
+    networks:
+      - ai_visibility_net
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+networks:
+  ai_visibility_net:
+    name: ai_visibility_net
+
+volumes:
+  ai_visibility-db-data:
+  ai_visibility-redis-data:

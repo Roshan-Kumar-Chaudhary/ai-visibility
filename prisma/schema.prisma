@@ -1,0 +1,135 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AISource {
+  CHATGPT
+  PERPLEXITY
+  GEMINI
+  COPILOT
+  CLAUDE
+  GROK
+  DEEPSEEK
+  META_AI
+}
+
+model User {
+  id       String  @id @default(cuid())
+  email    String  @unique
+  password String
+  name     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sites Site[]
+}
+
+
+model Site {
+  id          String   @id @default(cuid())
+
+  name        String
+  domain      String
+
+  apiKey      String   @unique
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId      String
+
+  user        User     @relation(fields: [userId], references: [id])
+
+  visitors    Visitor[]
+  sessions  Session[]
+  events      Event[]
+
+  @@index([userId])
+}
+
+
+
+model Visitor {
+  id            String   @id @default(cuid())
+
+  anonymousId   String
+
+  firstSeen     DateTime @default(now())
+  lastSeen      DateTime @updatedAt
+
+  siteId        String
+
+  site          Site     @relation(fields: [siteId], references: [id])
+
+  events        Event[]
+  sessions      Session[]
+
+
+  @@index([siteId])
+  @@index([anonymousId])
+}
+
+
+model Event {
+  id            String   @id @default(cuid())
+
+  pageUrl       String
+
+  referrer      String?
+
+  userAgent     String?
+
+  ipHash        String?
+
+  aiSource      AISource?
+
+  createdAt     DateTime @default(now())
+
+  siteId        String
+  visitorId     String
+  sessionId   String
+
+
+  site          Site     @relation(fields: [siteId], references: [id])
+
+  visitor       Visitor  @relation(fields: [visitorId], references: [id])
+
+    session     Session  @relation(fields: [sessionId], references: [id])
+
+
+  @@index([siteId])
+  @@index([visitorId])
+  @@index([sessionId])
+  @@index([createdAt])
+}
+
+model Session {
+  id            String   @id @default(cuid())
+
+  visitorId     String
+  siteId        String
+
+  visitor       Visitor  @relation(fields: [visitorId], references: [id])
+  site          Site     @relation(fields: [siteId], references: [id])
+
+  startedAt     DateTime @default(now())
+  lastActivity  DateTime @updatedAt
+  endedAt       DateTime?
+
+  isActive      Boolean  @default(true)
+
+  events        Event[]
+
+  @@index([visitorId])
+  @@index([siteId])
+}
